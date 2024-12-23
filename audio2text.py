@@ -2,7 +2,7 @@ from dashscope import MultiModalConversation
 import dashscope
 import os
 
-def extract_audio_content(audio_file_path):
+def audio_to_text(audio_file_path):
     """
     从音频文件中提取内容并格式化
     
@@ -30,5 +30,5 @@ def extract_audio_content(audio_file_path):
 # 使用示例
 if __name__ == "__main__":
     audio_path = "/root/auto-biography/audio/ayi_1.mp3"
-    result = extract_audio_content(audio_path)
+    result = audio_to_text(audio_path)
     print(result)
