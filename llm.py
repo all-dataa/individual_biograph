@@ -70,6 +70,7 @@ def call_llm(
         print(f"调用 LLM API 时出错: {str(e)}")
         return None
 
+
 def purify(origin_content, character_name):
     """
     Agent: purify 第一步提纯音频
@@ -103,8 +104,6 @@ def purify(origin_content, character_name):
             print("提纯过程失败：LLM 调用返回空结果")
             return None
             
-        with open("output/purify.md", "w", encoding="utf-8") as file:
-            file.write(data)
         return data
     except Exception as e:
         print(f"提纯过程发生错误: {str(e)}")
@@ -136,11 +135,17 @@ def outliner(revised_content):
     请根据输入文本生成一份传记的大纲。确保内容简洁、条理清晰，能够为后续撰写完整传记提供框架，最后以markdown形式给出。
     """
     
-    biography_outline =  call_llm(system_prompt, user_prompt,temperature=1.5)
-    # 保存到 .md 文件
-    with open("output/outline.md", "w", encoding="utf-8") as file:
-        file.write(biography_outline)
-    return biography_outline
+    try:
+        biography_outline =  call_llm(system_prompt, user_prompt,temperature=1.5)
+        if biography_outline is None:
+            print("outline 过程失败：LLM 调用返回空结果")
+            return None
+        
+        biography_outline = biography_outline.replace("```markdown", "").replace("```", "").strip()
+        return biography_outline
+    except Exception as e:
+        print(f"outline 过程发生错误: {str(e)}")
+        return None
 
 def writer(part, outline):
     """
@@ -162,11 +167,16 @@ def writer(part, outline):
 
     请生成该阶段的传记内容，确保内容详尽、逻辑清晰、生动引人，最后以markdown形式给出。
     """
-    
-    data = call_llm(system_prompt, user_prompt)
-    # 保存到 .md 文件
-    with open("output/biography.md", "w", encoding="utf-8") as file:
-        file.write(data)
+    try:
+        data = call_llm(system_prompt, user_prompt)
+        if data is None:
+            print("writer 过程失败：LLM 调用返回空结果")
+            return None
+        data = data.replace("```markdown", "").replace("```", "").strip()
+        return data
+    except Exception as e:
+        print(f"write 过程发生错误: {str(e)}")
+        return None
 
 
 def conclusioner(content):
