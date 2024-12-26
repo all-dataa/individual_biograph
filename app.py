@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
 from audio2text import audio_to_text
 from llm import purify, outliner, writer
+from datetime import datetime
 
 # 配置日志
 logging.basicConfig(
@@ -12,6 +13,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+def get_timestamp_filename(base_name, character_name):
+    """生成带有时间戳和人物名称的文件名"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return f"output/{character_name}_{base_name}_{timestamp}.md"
 
 # 获取当前文件所在目录的绝对路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -58,22 +64,29 @@ def generate_biography():
         # 生成传记
         # 1. 提纯文本
         purified_text = purify(text_content, character_name)
+        filename = get_timestamp_filename("purified", character_name)
+        
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(purified_text)
         
         # 2. 生成大纲
         biography_outline = outliner(purified_text)
+        filename = get_timestamp_filename("outline", character_name)
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(biography_outline)
         
         # 3. 写作传记
-        writer("全文", biography_outline)  # 这里简化为直接生成全文
+        biography_content = writer("全文", biography_outline)  # 这里简化为直接生成全文
+        filename = get_timestamp_filename("content", character_name)
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write(biography_content)
         
-        # 读取生成的传记
-        with open("output/biography.md", "r", encoding="utf-8") as file:
-            biography = file.read()
-            
+        # 直接返回最新生成的传记内容
         return jsonify({
             'success': True,
-            'biography': biography
+            'biography': biography_content
         })
-        
+       
     except Exception as e:
         # 记录详细的错误信息
         logger.error(f"生成传记时发生错误: {str(e)}", exc_info=True)
