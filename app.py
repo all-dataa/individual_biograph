@@ -14,10 +14,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_timestamp_filename(base_name, character_name):
-    """生成带有时间戳和人物名称的文件名"""
+
+def get_timestamp_filename(base_name, character_name, subdirectory=None, file_extension='md'):
+    """生成带有时间戳和人物名称的文件名，并支持子目录和文件类型"""
+    
+    # 验证文件扩展名是否合法
+    allowed_extensions = ['md', 'mp3', 'pdf']
+    if file_extension not in allowed_extensions:
+        raise ValueError(f"Unsupported file extension. Supported extensions: {', '.join(allowed_extensions)}")
+    
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return f"output/{character_name}_{base_name}_{timestamp}.md"
+    
+    # 如果提供了子目录，拼接子目录路径
+    if subdirectory:
+        subdirectory_path = os.path.join(subdirectory)  # 直接使用子目录
+        # 确保子目录存在，如果不存在则创建
+        os.makedirs(subdirectory_path, exist_ok=True)
+        return os.path.join(subdirectory_path, f"{character_name}_{base_name}_{timestamp}.{file_extension}")
+    
+    # 默认情况下，不使用 output 子目录
+    return f"{character_name}_{base_name}_{timestamp}.{file_extension}"
+
 
 # 获取当前文件所在目录的绝对路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,11 +61,14 @@ def index():
 @app.route('/generate_biography', methods=['POST'])
 def generate_biography():
     try:
+        character_name = request.form.get('name', '主人公')
         # 处理音频文件
         if 'audio' in request.files:
             audio_file = request.files['audio']
             if audio_file and allowed_file(audio_file.filename):
-                filename = secure_filename(audio_file.filename)
+                # filename = secure_filename(audio_file.filename)
+                filename = get_timestamp_filename("audio", character_name, file_extension='mp3')
+                # 保存音频文件
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 audio_file.save(filepath)
                 
@@ -59,25 +79,23 @@ def generate_biography():
         else:
             text_content = request.form.get('text', '')
         
-        character_name = request.form.get('name', '主人公')
-        
         # 生成传记
         # 1. 提纯文本
         purified_text = purify(text_content, character_name)
-        filename = get_timestamp_filename("purified", character_name)
+        filename = get_timestamp_filename("purified", character_name, "output")
         
         with open(filename, "w", encoding="utf-8") as file:
             file.write(purified_text)
         
         # 2. 生成大纲
         biography_outline = outliner(purified_text)
-        filename = get_timestamp_filename("outline", character_name)
+        filename = get_timestamp_filename("outline", character_name, "output")
         with open(filename, "w", encoding="utf-8") as file:
             file.write(biography_outline)
         
         # 3. 写作传记
         biography_content = writer("全文", biography_outline)  # 这里简化为直接生成全文
-        filename = get_timestamp_filename("content", character_name)
+        filename = get_timestamp_filename("content", character_name, "output")
         with open(filename, "w", encoding="utf-8") as file:
             file.write(biography_content)
         
