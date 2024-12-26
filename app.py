@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from audio2text import audio_to_text
 from llm import purify, outliner, writer
 from datetime import datetime
+from flask_cors import CORS
 
 # 配置日志
 logging.basicConfig(
@@ -42,6 +43,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__,
     template_folder=os.path.join(current_dir, 'templates')
 )
+
+CORS(app)
 
 # 配置上传文件夹
 UPLOAD_FOLDER = 'uploads'
@@ -112,6 +115,44 @@ def generate_biography():
             'success': False,
             'error': f"处理请求时发生错误: {str(e)}"
         })
+
+@app.route('/advice', methods=['POST'])
+def receive_advice():
+    # 获取用户提交的反馈内容
+    data = request.get_json()
+
+    # 检查请求体是否包含有效的 JSON 数据
+    if not data:
+        return jsonify({"success": False, "error": "无效的 JSON 数据"}), 400
+    
+    if 'advice' not in data:
+        return jsonify({"success": False, "error": "缺少 'advice' 字段"}), 400
+
+    advice = data['advice']
+
+    # 判断是否收到反馈内容
+    if not advice:
+        return jsonify({"success": False, "error": "反馈内容不能为空"}), 400
+
+    log_dir = "logs/advice"
+    log_file = os.path.join(log_dir, "advice.log")
+    os.makedirs(log_dir, exist_ok=True)  # 如果目录不存在，则创建目录
+
+    # 获取当前时间，用于记录时间点
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 拼接时间戳与反馈内容
+    log_entry = f"{timestamp} - {advice}\n"
+
+    try:
+        # 追加写入到 advice.log 文件
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+        
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000,debug=True)
