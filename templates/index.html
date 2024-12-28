@@ -301,30 +301,39 @@
         }
 
         async function generateBiography() {
-            const formData = new FormData();
-            const audioFile = document.getElementById('audio').files[0];
-            const text = document.getElementById('text').value;
-            const name = document.getElementById('name').value;
-
-            if (!name) {
-                alert('请输入人物姓名');
-                return;
-            }
-
-            if (!audioFile && !text) {
-                alert('请上传音频文件或输入文本');
-                return;
-            }
-
-            formData.append('name', name);
-            if (audioFile) {
-                formData.append('audio', audioFile);
-            }
-            if (text) {
-                formData.append('text', text);
-            }
+            const generateButton = document.querySelector('button');
+            const originalButtonText = generateButton.textContent;
+            
+            // 禁用按钮并显示加载状态
+            generateButton.disabled = true;
+            generateButton.textContent = '正在生成中，喝杯水运动运动去吧';
+            generateButton.style.opacity = '0.7';
+            generateButton.style.cursor = 'not-allowed';
 
             try {
+                const formData = new FormData();
+                const audioFile = document.getElementById('audio').files[0];
+                const text = document.getElementById('text').value;
+                const name = document.getElementById('name').value;
+
+                if (!name) {
+                    alert('请输入人物姓名');
+                    return;
+                }
+
+                if (!audioFile && !text) {
+                    alert('请上传音频文件或输入文本');
+                    return;
+                }
+
+                formData.append('name', name);
+                if (audioFile) {
+                    formData.append('audio', audioFile);
+                }
+                if (text) {
+                    formData.append('text', text);
+                }
+
                 const response = await fetch('/generate_biography', {
                     method: 'POST',
                     body: formData
@@ -335,12 +344,18 @@
                 if (data.success) {
                     const resultDiv = document.getElementById('result');
                     resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = marked(data.biography); // 使用 marked 渲染 Markdown 为 HTML
+                    resultDiv.innerHTML = marked(data.biography);
                 } else {
                     alert('生成失败：' + data.error);
                 }
             } catch (error) {
                 alert('发生错误：' + error);
+            } finally {
+                // 无论成功或失败，都恢复按钮状态
+                generateButton.disabled = false;
+                generateButton.textContent = originalButtonText;
+                generateButton.style.opacity = '1';
+                generateButton.style.cursor = 'pointer';
             }
         }
     </script>
